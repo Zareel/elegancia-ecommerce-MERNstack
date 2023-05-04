@@ -1,10 +1,11 @@
-# Ecommerce App
+# MERN Stack Ecommerce App
 
 ## initialize node application
 
 - npm init
 - [npm install express](https://www.npmjs.com/package/express)
-- server.js file in the root folder
+
+### Create server.js file at the top lever of your file structure
 
 ## create server
 
@@ -40,21 +41,21 @@ app.listen(PORT, () => {
 ```js
 import express from "express";
 const app = express();
-import colors from "colors";
 import dotenv from "dotenv";
+
+// either grab your PORT from process.env.PORT(environmet variable) or use the PORT 3000
 const PORT = process.env.PORT || 3000;
 
 //configure env
 dotenv.config();
 
 app.get("/", (req, res) => {
-  res.send(`<h1>Server is up and running, Welcome the shop</h1>`);
+  res.send(`<h1>Server is up and running.</h1>`);
 });
 
 app.listen(PORT, () => {
   console.log(
-    `Server is running on ${process.env.DEV_MODE} mode on PORT ${PORT}`.bgBlue
-      .white
+    `Server is running on ${process.env.DEV_MODE} mode on PORT ${PORT}`
   );
 });
 ```
@@ -67,20 +68,19 @@ app.listen(PORT, () => {
 - [npm install mongoose](https://mongoosejs.com/docs/)
 - Mongoose.module is one of the most powerful external module of the node.js. Mongoose is a MongoDB ODM (Object database Modelling) that is used to translate the code and its representation from MongoDB to the Node.js server.
 
-### create `config` folder
+### create `config` folder and `db.js` file inside it
 
 - `config/db.js` 👇
 
 ```js
 import mongoose from "mongoose";
-import colors from "colors";
 
 const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URL);
     console.log(`Connected to MongoDB database ${conn.connection.host}`);
   } catch (error) {
-    console.log(`Error in MongoDB ${error}`.bgRed.white);
+    console.log(`Error in MongoDB ${error}`);
   }
 };
 
@@ -123,12 +123,11 @@ connectDB();
 ```js
 import express from "express";
 const app = express();
-import colors from "colors";
 import dotenv from "dotenv";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
 
-// either grab your PORT from process.env.PORT((environmet variable) or use the PORT 3000
+// either grab your PORT from process.env.PORT(environmet variable) or use the PORT 3000
 const PORT = process.env.PORT || 3000;
 
 //configure env
@@ -142,13 +141,12 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 app.get("/", (req, res) => {
-  res.send(`<h1>Server is up and running, Welcome the shop</h1>`);
+  res.send(`<h1>Server is up and running</h1>`);
 });
 
 app.listen(PORT, () => {
   console.log(
-    `Server is running on ${process.env.DEV_MODE} mode on PORT ${PORT}`.bgBlue
-      .white
+    `Server is running on ${process.env.DEV_MODE} mode on PORT ${PORT}`
   );
 });
 ```
@@ -159,7 +157,8 @@ app.listen(PORT, () => {
 
 ## Create authRoles
 
-- create folder `utils` and file `authRoles.js` inside it
+### create folder `utils` and file `authRoles.js` inside it
+
 - `authRoles.js` 👇
 
 ```js
@@ -173,13 +172,13 @@ const authRoles = {
 export default authRoles;
 ```
 
-## Create Schemas
+## Create userSchema
 
 - [docs](https://mongoosejs.com/docs/guide.html)
 
-- create folder `model` and respective files for schemas
+### create folder `model` and respective files for Schemas
 
-- `user.schema.js` 👇
+- `userModel.js` 👇
 
 ```js
 import mongoose from "mongoose";
@@ -212,6 +211,7 @@ const userSchema = new mongoose.Schema(
     address: {
       type: String,
       required: true,
+      trim: true,
     },
     role: {
       type: String,
@@ -232,6 +232,108 @@ const userSchema = new mongoose.Schema(
 export default mongoose.model("User", userSchema);
 ```
 
+## create userRoute
+
+### Create forder called `routes` and file called `authRoute.js` inside it
+
+- `authRoute.js` 👇
+
+```js
+import express from "express";
+import { signUpController } from "../controllers/authConroller.js";
+
+//router object
+const router = express.Router();
+
+// routing
+// signUp || method: post
+
+router.post("/signup", signUpController);
+
+export default router;
+```
+
+### import `authRoutes` in `server.js` 👇
+
+```js
+import authRoutes from "./routes/authRoute.js";
+//routes
+app.use("/api/v1/auth", authRoutes);
+```
+
 ### install bcryptjs
 
 - [npm install bcryptjs](https://www.npmjs.com/package/bcryptjs)
+
+### create new folder `helpers` and `authHelper.js` file inside it
+
+- create two functions, one is for encrypt password and other one is for comparing password
+- `authHelper.js` 👇
+
+```js
+import bcrypt from "bcryptjs";
+// hash password
+export const hashPassword = async (password) => {
+  try {
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    return hashedPassword;
+  } catch (error) {
+    console.log(error);
+  }
+};
+//compare password
+export const comparePassword = async (password, hashedPassword) => {
+  return bcrypt.compare(password, hashedPassword);
+};
+```
+
+## setup Controller for user
+
+### Create the folder `controller` and file `authController.js`
+
+- check if the user is existing
+- if user not existing encrypt password and save the user info in the database
+- `authController.js` 👇
+
+```js
+import { hashPassword } from "../helpers/authHelper.js";
+import userModel from "../models/userModel.js";
+
+export const signUpController = async (req, res) => {
+  const { name, email, password, phone, address } = req.body;
+  try {
+    //check user
+    const existingUser = await userModel.findOne({ email });
+    //existing user
+    if (existingUser) {
+      return res.status(200).send({
+        success: true,
+        message: "Already signed Up, Please login",
+      });
+    }
+    // signUp user
+    const hashedPassword = await hashPassword(password);
+    //save
+    const user = await new userModel({
+      name,
+      email,
+      phone,
+      address,
+      password: hashedPassword,
+    }).save();
+    res.status(201).send({
+      success: true,
+      message: "User Register Successfully",
+      user,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error in signUp",
+      error,
+    });
+  }
+};
+```
