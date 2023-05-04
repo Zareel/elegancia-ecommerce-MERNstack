@@ -39,4 +39,6 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// encrypt the password before saving
+
 export default mongoose.model("User", userSchema);

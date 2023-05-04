@@ -234,4 +234,4 @@ export default mongoose.model("User", userSchema);
 
 ### install bcryptjs
 
-- [npm install bcrypt](https://www.npmjs.com/package/bcryptjs)
+- [npm install bcryptjs](https://www.npmjs.com/package/bcryptjs)
