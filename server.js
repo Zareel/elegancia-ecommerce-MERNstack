@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(
-    `Server is running on ${process.env.DEV_MODE} mode on PORT ${PORT}`.bgBlue
+    `Server is running on ${process.env.DEV_MODE} mode on PORT: ${PORT}`.bgBlue
       .white
   );
 });
