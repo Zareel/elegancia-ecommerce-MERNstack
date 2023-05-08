@@ -5,7 +5,7 @@
 - npm init
 - [npm install express](https://www.npmjs.com/package/express)
 
-### Create server.js file at the top lever of your file structure
+### Create server.js file at the top level of your file structure
 
 ## create server
 
@@ -178,7 +178,7 @@ export default authRoles;
 
 ### create folder `model` and respective files for Schemas
 
-- `userModel.js` 👇
+- `model/userModel.js` 👇
 
 ```js
 import mongoose from "mongoose";
@@ -228,7 +228,13 @@ const userSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
+/*
+### timestamps => 
+- mongoose schemas support a timestamps option.
+- if you set `timestamps: true`, Mongoose will add two properties of type `Date` to your schema
+1. createdAt: A date representing when this document is created
+2. updatedAt: A date representing when this document is updated
+*/
 export default mongoose.model("User", userSchema);
 ```
 
@@ -293,19 +299,25 @@ export const comparePassword = async (password, hashedPassword) => {
 ### Create the folder `controller` and file `authController.js`
 
 - check if the user is existing
-- if user not existing encrypt password and save the user info in the database
+- if user exists thow an error
+- if user not exists encrypt password and save the user info in the database
 - `authController.js` 👇
 
 ```js
 import { hashPassword } from "../helpers/authHelper.js";
-import userModel from "../models/userModel.js";
+import User from "../models/userModel.js";
 
-export const signUpController = async (req, res) => {
+export const signUp = async (req, res) => {
+  //get data from the user
   const { name, email, password, phone, address } = req.body;
+  //validation
+  if (!name || !email || !password || !phone || !address) {
+    throw new Error("Required field");
+  }
   try {
-    //check user
-    const existingUser = await userModel.findOne({ email });
-    //existing user
+    //check if the user already exists
+    const existingUser = await User.findOne({ email });
+    //if user already exists, thorw an error
     if (existingUser) {
       return res.status(200).send({
         success: true,
@@ -336,4 +348,88 @@ export const signUpController = async (req, res) => {
     });
   }
 };
+```
+
+## create login route
+
+- [npm install jsonwebtoken](https://www.npmjs.com/package/jsonwebtoken)
+- create secret key in .env file
+
+- import JWT in `controllers/authcontroller.js`
+- create loginController function
+- validate email and password
+- check user, if not exist in database send resopnse
+- match password, if not matching, send response
+
+- [docs](https://mongoosejs.com/docs/queries.html)
+- Mongoose models provide static helper function for `CRUD operations`. Each of these functions returns a mongoose query object
+
+```js
+export const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    //validate
+    if (!email || !password) {
+      return res.status(404).send({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+    //compare password
+    const match = await comparePassword();
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error in login",
+      error,
+    });
+  }
+};
+```
+
+- `routes/authRoute.js` 👇
+
+```js
+import express from "express";
+import { signUp, login } from "../controllers/authConroller.js";
+
+//router object
+const router = express.Router();
+
+// routing
+// signUp || method: post
+router.post("/signup", signUp);
+
+//login || POST
+router.post("/login", login);
+
+export default router;
+```
+
+## JWT
+
+- JWT is a long encrypted string as a token
+- it is made up of header(algorithm & token type), payload(data), secret(verify signature) and validity period
+- whoever has the access to the sectret can decrypt the value
+
+- authController.js
+
+```js
+//token
+const token = await JWT.sign({ _id: user._id }, process.env.JWT_SECRET, {
+  expiresIn: "7d",
+});
+res.status(200).send({
+  success: true,
+  message: "login successfully",
+  user: {
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    adddress: user.address,
+  },
+  token,
+});
 ```
