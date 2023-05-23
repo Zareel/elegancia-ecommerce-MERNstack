@@ -1,4 +1,4 @@
-import Collection from "../models/collectionModel.js";
+import Collection from "../models/collectionSchema.js";
 
 /**********************************************************
  * @CREATE_COLLECTION

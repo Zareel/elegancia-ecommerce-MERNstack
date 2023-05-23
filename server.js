@@ -1,28 +1,18 @@
-import express from "express";
-const app = express();
+import mongoose from "mongoose";
+import app from "./src/app.js";
 import colors from "colors";
-import dotenv from "dotenv";
-import morgan from "morgan";
-import connectDB from "./config/db.js";
-import authRoutes from "./routes/authRoute.js";
-const PORT = process.env.PORT || 3000;
+import config from "./src/config/index.js";
 
-//configure env
-dotenv.config();
+const PORT = config.PORT;
 
-//database config
-connectDB();
-
-//middleware
-app.use(express.json());
-app.use(morgan("dev"));
-
-//routes
-app.use("/api/v1/auth", authRoutes);
-
-app.get("/", (req, res) => {
-  res.send(`<h1>Server is up and running</h1>`);
-});
+(async () => {
+  try {
+    const conn = await mongoose.connect(config.MONGODB_URL);
+    console.log(`Connected to MongoDB ${conn.connection.host}`.bgMagenta.white);
+  } catch (error) {
+    console.log(`Error in Mongodb connection ${error}`.bgRed.white);
+  }
+})();
 
 app.listen(PORT, () => {
   console.log(
